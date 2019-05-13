@@ -11,7 +11,7 @@ import(
 	// "encoding/binary"
 )
 
-const targetBits = 24
+const targetBits = 10
 
 var (
 	maxNonce = math.MaxInt64
@@ -36,7 +36,7 @@ func (pow *ProofOfWork) PrepareData(nonce int) []byte{
 	data := bytes.Join(
 		[][]byte{
 			pow.block.PrevBlockHash,
-			pow.block.Data,
+			pow.block.HashTransactions(),
 			IntToHex(pow.block.TimeStamp),
 			IntToHex(int64(targetBits)),
 			IntToHex(int64(nonce)),
@@ -54,7 +54,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	nonce := 0
 
 	// fmt.Println("Mining the block containing \" %s \"", pow.block.Data)
-	fmt.Printf("Mining the block containing \"%s\"\n", pow.block.Data)
+	// fmt.Printf("Mining the block containing \"%s\"\n", pow.block.Data)
 	for nonce < maxNonce{
 		data := pow.PrepareData(nonce)
 		hash = sha256.Sum256(data)

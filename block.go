@@ -1,15 +1,18 @@
 package main
 
 import(
-	// "bytes"
+	"bytes"
+	"encoding/gob"
 	"time"
-	// "crypto/sha256"
+	"log"
+	// "fmt"
+	"crypto/sha256"
 	// "strconv"
 )
 
 type Block struct{
 	TimeStamp int64
-	Data []byte
+	Transactions []*Transaction
 	PrevBlockHash []byte
 	Hash []byte
 	Nonce int
@@ -24,8 +27,8 @@ type Block struct{
 // 	b.Hash = hash[:]
 // }
 
-func NewBlock(data string, prevBlockHash []byte) *Block {
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
 
@@ -35,7 +38,42 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 	return block
 }
 
-func NewGenesisBlock() *Block {
-	return NewBlock("Genesis Block", []byte{})
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
+func (b *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(b)
+	if err != nil{
+		log.Panic(err)
+	}
+
+	return result.Bytes()
+}
+
+func DeserializeBlock(d []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&block)
+	if err != nil{
+		log.Panic(err)
+	}
+
+	return &block
+}
+
+func (b *Block)HashTransactions() []byte{
+	var txHashes [][]byte
+    var txHash [32]byte
+
+    for _, tx := range b.Transactions {
+        txHashes = append(txHashes, tx.ID)
+    }
+    txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+    return txHash[:]
+}
